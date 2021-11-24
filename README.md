@@ -198,9 +198,16 @@ Get password to admin account
 ```bash
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d && echo
 # copy password
+
+# Find full pod name
+kubectl get pod -n argocd
+# copy name starting with argocd-server-*
+
+# Run proxy to pod
+kubectl port-forward -n argocd argocd-server-<real=-d> 8080:8080
 ```
 
-open <https://argo.k8s.local> and use `admin` as username
+open <localhost:8080> and use `admin` as username
 
 ### Create Application
 

@@ -120,8 +120,8 @@ proxy-dashboard:
 # If chrome not allow open localhost use chrome://flags/#allow-insecure-localhost
 
 proxy-argo:
-	echo "Open at https://localhost:8080"
-	kubectl port-forw
+	echo "Open at http://localhost:8080"
+	kubectl port-forward -n argocd argocd-server-7cc6fc47d7-bs8rg 8080:8080
 
 proxy-grafana: 
 	kubectl port-forward -n monitoring-logs-trace-stack  kube-prometheus-stack-grafana-7df49b8657-wfrdn 8081:3000
