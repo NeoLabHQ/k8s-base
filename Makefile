@@ -27,6 +27,7 @@ apply-base:
 	make create-dashboard-role
 	make save-stackgres-profiles
 	make save-wasabi-creds
+	make save-amocrm-creds
 	make apps
 
 # if kubernetes dashboard cannot list something
@@ -81,6 +82,15 @@ save-docker-hub-creds:
 	kubectl create secret generic docker-hub-creds \
 		--from-file=.dockerconfigjson=./.docker/config.json \
 		--type=kubernetes.io/dockerconfigjson
+
+save-amocrm-creds:
+	kubectl delete --ignore-not-found=true secret amocrm-creds
+	kubectl create secret generic amocrm-creds \
+		--from-literal='AMOCRM_INTEGRATION_ID=${AMOCRM_INTEGRATION_ID}' \
+		--from-literal='AMOCRM_SECRET_KEY=${AMOCRM_SECRET_KEY}' \
+		--from-literal='AMOCRM_AUTH_REDIRECT_URI=${AMOCRM_AUTH_REDIRECT_URI}' \
+		--from-literal='AMOCRM_CHANNEL_SECRET_KEY=${AMOCRM_CHANNEL_SECRET_KEY}' \
+		--from-literal='AMOCRM_CHANNEL_ID=${AMOCRM_CHANNEL_ID}' 
 
 # ---------------------------------------------------------------------------------------------------------------------
 # CERTIFICATE MANAGER
