@@ -15,6 +15,8 @@ repositories:
     url: https://charts.bitnami.com/bitnami
   - name: cowboysysop 
     url: https://cowboysysop.github.io/charts/
+  - name: kong
+    url: https://charts.konghq.com
 
 releases:
   # https://cert-manager.io/docs/installation/kubernetes/#installing-with-helm
@@ -27,10 +29,17 @@ releases:
       - installCRDs: true
 
   # https://artifacthub.io/packages/helm/ingress-nginx/ingress-nginx
-  # Uncomment if your cluster not have ingress-nginx by default
-  - name: ingress-nginx
-    chart: ingress-nginx/ingress-nginx
-    version: ^3.35.0
+  # Uncomment if you need ingress based on nginx and comment other ingress
+  # - name: ingress-nginx
+  #   chart: ingress-nginx/ingress-nginx
+  #   version: ^3.35.0
+
+  # https://artifacthub.io/packages/helm/kong/kong
+  - name: kong
+    namespace: kong
+    createNamespace: true
+    chart: kong/kong
+    version: ^2.6.3
 
   # https://artifacthub.io/packages/helm/k8s-dashboard/kubernetes-dashboard
   - name: kubernetes-dashboard

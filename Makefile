@@ -45,6 +45,11 @@ apps:
 save-stackgres-profiles:
 	kubectl apply -f ./manifests/stackgres-instance-profiles.yaml
 
+apply-kong-operator-for-minikube:
+	kubectl create -f https://bit.ly/k4k8s
+	kubectl apply -f ./manifests/kong-operator.dev-patch.yaml
+	
+
 # ---------------------------------------------------------------------------------------------------------------------
 # MINIKUBE
 # ---------------------------------------------------------------------------------------------------------------------
