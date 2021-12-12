@@ -19,16 +19,29 @@ setup:
 	helmfile sync
 	make apply-base
 
+dev-setup:
+	helmfile -f helmfile.dev.yaml sync
+	make apply-dev-base
+
 sync: 
 	helmfile apply
 	make apply-base
 
 apply-base:
 	make create-dashboard-role
+	make save-docker-hub-creds
 	make save-stackgres-profiles
 	make save-wasabi-creds
 	make save-amocrm-creds
 	make apps
+	make apply-cors
+
+apply-dev-base:
+	make create-dashboard-role
+	make save-docker-hub-creds
+	make apply-kong-operator-for-minikube
+	make save-amocrm-creds
+	make apply-cors
 
 # if kubernetes dashboard cannot list something
 update-admin-role:
@@ -49,17 +62,20 @@ apply-kong-operator-for-minikube:
 	kubectl create -f https://bit.ly/k4k8s
 	kubectl apply -f ./manifests/kong-operator.dev-patch.yaml
 	
+apply-cors:
+	kubectl apply -f ./manifests/cors.yaml
 
 # ---------------------------------------------------------------------------------------------------------------------
 # MINIKUBE
 # ---------------------------------------------------------------------------------------------------------------------
 
 # Setup local cluster
-local: minikube setup
+local: minikube dev-setup
 
 minikube:
-	minikube start --addons=ingress --memory='max' --cpus='max'
-	make minikube-ingress
+	minikube start --memory='max' --cpus='max'
+#	minikube start --addons=ingress --memory='max' --cpus='max'
+#	make minikube-ingress
 
 # Allow access without proxy
 minikube-ingress:
