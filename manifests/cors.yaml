@@ -5,7 +5,8 @@ metadata:
   name: omnigram-cors
 config: 
   origins:
-  - https://*.omnigram.ru
+  - (^|^[^:]+:\/\/|[^\.]+\.)omnigram\.ru # -> actually means *.omnigram.ru
+  
   exposed_headers:
   - "*"
   credentials: true
