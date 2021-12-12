@@ -20,7 +20,7 @@ setup:
 	make apply-base
 
 dev-setup:
-	helmfile sync
+	helmfile -f helmfile.dev.yaml sync
 	make apply-dev-base
 
 sync: 
