@@ -41,7 +41,7 @@ apply-dev-base:
 	make save-docker-hub-creds
 	make apply-kong-operator-for-minikube
 	make save-amocrm-creds
-	make apply-cors
+	make apply-dev-cors
 
 # if kubernetes dashboard cannot list something
 update-admin-role:
@@ -64,6 +64,9 @@ apply-kong-operator-for-minikube:
 	
 apply-cors:
 	kubectl apply -f ./manifests/cors.yaml
+
+apply-dev-cors:
+	kubectl apply -f ./manifests/cors.dev.yaml
 
 # ---------------------------------------------------------------------------------------------------------------------
 # MINIKUBE
