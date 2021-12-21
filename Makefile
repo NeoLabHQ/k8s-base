@@ -116,6 +116,11 @@ save-amocrm-creds:
 		--from-literal='AMOCRM_CHANNEL_SECRET_KEY=${AMOCRM_CHANNEL_SECRET_KEY}' \
 		--from-literal='AMOCRM_CHANNEL_ID=${AMOCRM_CHANNEL_ID}' 
 
+save-mongodb-uri:
+	kubectl delete --ignore-not-found=true secret mongodb-creds
+	kubectl create secret generic mongodb-creds \
+		--from-literal='MONGOOSE_URI=mongodb://root:mongodb-omnigram-password@mongodb-0.mongodb-headless.default.svc.cluster.local:27017,mongodb-1.mongodb-headless.default.svc.cluster.local:27017/'
+
 # ---------------------------------------------------------------------------------------------------------------------
 # CERTIFICATE MANAGER
 # ---------------------------------------------------------------------------------------------------------------------
