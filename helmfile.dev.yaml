@@ -11,18 +11,18 @@ repositories:
     url: https://argoproj.github.io/argo-helm
   - name: ingress-nginx
     url: https://kubernetes.github.io/ingress-nginx
-  - name: bitnami
-    url: https://charts.bitnami.com/bitnami
+  - name: strimzi
+    url: https://strimzi.io/charts/
 
 releases:
   # https://cert-manager.io/docs/installation/kubernetes/#installing-with-helm
-  - name: cert-manager
-    namespace: cert-manager
-    createNamespace: true
-    chart: jetstack/cert-manager
-    version: ^1.3.1
-    values:
-      - installCRDs: true
+  # - name: cert-manager
+  #   namespace: cert-manager
+  #   createNamespace: true
+  #   chart: jetstack/cert-manager
+  #   version: ^1.3.1
+  #   values:
+  #     - installCRDs: true
 
 
   # https://artifacthub.io/packages/helm/k8s-dashboard/kubernetes-dashboard
@@ -101,3 +101,13 @@ releases:
           enabled: true
       - fluent-bit: # can work faster, but plugin for loki not support pod labels
           enabled: false
+
+  # https://artifacthub.io/packages/helm/strimzi/strimzi-kafka-operator
+  - name: strimzi
+    namespace: strimzi
+    createNamespace: true
+    chart: strimzi/strimzi-kafka-operator
+    version: ^0.26.1
+    values:
+      - watchNamespaces: 
+          - default

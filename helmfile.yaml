@@ -17,6 +17,8 @@ repositories:
     url: https://cowboysysop.github.io/charts/
   - name: kong
     url: https://charts.konghq.com
+  - name: strimzi
+    url: https://strimzi.io/charts/
 
 releases:
   # https://cert-manager.io/docs/installation/kubernetes/#installing-with-helm
@@ -195,3 +197,13 @@ releases:
       - adminui.service.type: LoadBalancer
       - grafana.autoEmbed: false
       - adminui.service.type: LoadBalancer
+
+  # https://artifacthub.io/packages/helm/strimzi/strimzi-kafka-operator
+  - name: strimzi
+    namespace: strimzi
+    createNamespace: true
+    chart: strimzi/strimzi-kafka-operator
+    version: ^0.26.1
+    values:
+      - watchNamespaces: 
+          - default
