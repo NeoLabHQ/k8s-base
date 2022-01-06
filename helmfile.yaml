@@ -158,7 +158,7 @@ releases:
   - name: mongodb
     namespace: default
     chart: bitnami/mongodb
-    version: ^10.23.10
+    version: 10.23.10
     values:
       - service.nameOverride: mongo
       - architecture: replicaset

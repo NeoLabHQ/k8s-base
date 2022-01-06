@@ -33,14 +33,16 @@ apply-base:
 	make save-stackgres-profiles
 	make save-wasabi-creds
 	make save-amocrm-creds
-	make apps
+	make save-mongodb-uri
 	make apply-cors
+	make apps
 
 apply-dev-base:
 	make create-dashboard-role
 	make save-docker-hub-creds
 	make apply-kong-operator-for-minikube
 	make save-amocrm-creds
+	make save-mongodb-uri
 	make apply-dev-cors
 
 # if kubernetes dashboard cannot list something
