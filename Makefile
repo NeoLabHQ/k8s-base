@@ -34,6 +34,7 @@ apply-base:
 	make save-wasabi-creds
 	make save-amocrm-creds
 	make save-mongodb-uri
+	make save-chatapi-creds
 	make apply-cors
 	make apps
 
@@ -43,6 +44,7 @@ apply-dev-base:
 	make apply-kong-operator-for-minikube
 	make save-amocrm-creds
 	make save-mongodb-uri
+	make save-chatapi-creds
 	make apply-dev-cors
 
 # if kubernetes dashboard cannot list something
@@ -122,6 +124,12 @@ save-mongodb-uri:
 	kubectl delete --ignore-not-found=true secret mongodb-creds
 	kubectl create secret generic mongodb-creds \
 		--from-literal='MONGOOSE_URI=mongodb://root:mongodb-omnigram-password@mongodb-0.mongodb-headless.default.svc.cluster.local:27017,mongodb-1.mongodb-headless.default.svc.cluster.local:27017/'
+
+save-chatapi-creds:
+	kubectl delete --ignore-not-found=true secret chatapi-creds
+	kubectl create secret generic chatapi-creds \
+		--from-literal='CHATAPI_API_URL=${CHATAPI_API_URL}' \
+		--from-literal='CHATAPI_API_KEY=${CHATAPI_API_KEY}' 
 
 # ---------------------------------------------------------------------------------------------------------------------
 # CERTIFICATE MANAGER
