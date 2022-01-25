@@ -96,6 +96,8 @@ releases:
       - grafana:
           enabled: true
           adminPassword: {{ env "GRAFANA_PASSSWORD" | default "prom-operator" }} 
+          image:
+            tag: 8.3.4
           ingress:
             enabled: false
             annotations:
@@ -113,7 +115,7 @@ releases:
     namespace: monitoring-logs-trace-stack
     createNamespace: true
     chart: grafana/loki-stack
-    version: ^2.4.1
+    version: ^2.5.1
     values:
       - promtail:
           enabled: true
