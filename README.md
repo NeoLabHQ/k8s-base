@@ -27,6 +27,8 @@ Current setup contains:
 * [loki-stack](https://artifacthub.io/packages/helm/grafana/loki-stack) - Loki: like Prometheus, but for logs
 * [tempo-distributed](https://artifacthub.io/packages/helm/grafana/tempo-distributed) - Grafana Tempo in MicroService mode
 * [argo-cd](https://artifacthub.io/packages/helm/argo/argo-cd) - Declarative continuous deployment for Kubernetes, GitOps implementation.
+* Strimzi - Kafka cluster operator
+* [ProvectusLab Kafka UI](https://github.com/provectus/kafka-ui) - Kafka WEB UI
 
 ## Requirements
 
@@ -204,6 +206,16 @@ If Tempo not connected probably you need enable Tempo.
 
 Open Configuration.DataSourses page in Grafana -> click Add data sourses -> click Tempo ->
 fill URL with `http://tempo-tempo-distributed-query-frontend:3100` and set Trace to Logs section with Data Source `Loki`
+
+## Access kafka UI
+
+To connect to Kafka-UI web application need to execute:
+
+```bash
+kubectl port-forward svc/kafka-ui 8080:80
+```
+
+Open the <http://127.0.0.1:8080> on the browser to access Kafka-UI.
 
 ## Access ArgoCD
 

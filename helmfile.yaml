@@ -19,6 +19,8 @@ repositories:
     url: https://charts.konghq.com
   - name: strimzi
     url: https://strimzi.io/charts/
+  - name: kafka-ui
+    url: https://provectus.github.io/kafka-ui
 
 releases:
   # https://cert-manager.io/docs/installation/kubernetes/#installing-with-helm
@@ -180,11 +182,11 @@ releases:
       - replicaCount: 1
       - resources:
           requests:
-            cpu: 0.1
+            cpu: "0.1"
             memory: 128M
           limits:
-            cpu: 0.5
-            memory: 512M
+            cpu: "0.1"
+            memory: 128M
       - mongodbServer: mongodb-0.mongodb-headless.default.svc.cluster.local,mongodb-1.mongodb-headless.default.svc.cluster.local
       - mongodbPort: 27017
       - mongodbEnableAdmin: true
@@ -209,3 +211,19 @@ releases:
     values:
       - watchNamespaces: 
           - default
+  
+  # https://github.com/provectus/kafka-ui/blob/master/charts/kafka-ui/README.md
+  - name: kafka-ui
+    chart: kafka-ui/kafka-ui
+    values:
+      - envs:
+          config: 
+            KAFKA_CLUSTERS_0_NAME: channels
+            KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: channels-kafka-bootstrap:9092
+      - resources: 
+          requests:
+            cpu: "0.1"
+            memory: 256M
+          limits:
+            cpu: "0.3"
+            memory: 256M
