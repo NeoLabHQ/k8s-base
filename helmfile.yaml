@@ -121,6 +121,8 @@ releases:
     values:
       - promtail:
           enabled: true
+          pipelineStages:
+          - cri: {} # for correctly parse json logs
       - fluent-bit: # can work faster, but plugin for loki not support pod labels
           enabled: false
 
