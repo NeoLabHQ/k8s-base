@@ -102,6 +102,23 @@ releases:
       - fluent-bit: # can work faster, but plugin for loki not support pod labels
           enabled: false
 
+  # https://artifacthub.io/packages/helm/bitnami/mongodb
+  - name: mongodb
+    namespace: default
+    chart: bitnami/mongodb
+    version: ^11.0.3
+    values:
+      - service.nameOverride: mongo
+      - architecture: replicaset
+      - auth:
+          enabled: true
+          rootUser: root
+          existingSecret: mongodb-config
+      - persistence:
+          size: 10G
+      # - persistence:
+      #     storageClass: civo-volume            
+
   # https://artifacthub.io/packages/helm/strimzi/strimzi-kafka-operator
   - name: strimzi
     namespace: strimzi

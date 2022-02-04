@@ -164,12 +164,14 @@ releases:
   - name: mongodb
     namespace: default
     chart: bitnami/mongodb
-    version: 10.23.10
+    version: ^11.0.3
     values:
       - service.nameOverride: mongo
       - architecture: replicaset
       - auth:
-          rootPassword: "mongodb-omnigram-password"
+          enabled: true
+          rootUser: root
+          existingSecret: mongodb-config
       - persistence:
           size: 10G
       # - persistence:

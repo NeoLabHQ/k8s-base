@@ -33,7 +33,7 @@ apply-base:
 	make save-stackgres-profiles
 	make save-wasabi-creds
 	make save-amocrm-creds
-	make save-mongodb-uri
+	make save-mongodb-creds
 	make save-chatapi-creds
 	make save-redis-creds
 	make apply-cors
@@ -45,7 +45,7 @@ apply-dev-base:
 	make save-docker-hub-creds
 	make apply-kong-operator-for-minikube
 	make save-amocrm-creds
-	make save-mongodb-uri
+	make save-mongodb-creds
 	make save-chatapi-creds
 	make save-redis-creds
 	make apply-dev-cors
@@ -127,10 +127,15 @@ save-amocrm-creds:
 		--from-literal='AMOCRM_CHANNEL_SECRET_KEY=${AMOCRM_CHANNEL_SECRET_KEY}' \
 		--from-literal='AMOCRM_CHANNEL_ID=${AMOCRM_CHANNEL_ID}' 
 
-save-mongodb-uri:
+save-mongodb-creds:
 	kubectl delete --ignore-not-found=true secret mongodb-creds
 	kubectl create secret generic mongodb-creds \
 		--from-literal='MONGOOSE_URI=mongodb://root:mongodb-omnigram-password@mongodb-0.mongodb-headless.default.svc.cluster.local:27017,mongodb-1.mongodb-headless.default.svc.cluster.local:27017/'
+	kubectl delete --ignore-not-found=true secret mongodb-config
+	kubectl create secret generic mongodb-config \
+		--from-literal='mongodb-password=${MONGODB_PASSWORD}' \
+		--from-literal='mongodb-root-password=${MONGODB_ROOT_PASSWORD}' \
+		--from-literal='mongodb-replica-set-key=${MONGODB_REPLICASET_KEY}' 
 
 save-chatapi-creds:
 	kubectl delete --ignore-not-found=true secret chatapi-creds

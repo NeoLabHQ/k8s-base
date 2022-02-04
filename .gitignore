@@ -4,3 +4,4 @@ notes.yaml
 .env.local
 
 .docker/
+.mongodb-replacaset-key/
