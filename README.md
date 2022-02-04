@@ -29,6 +29,7 @@ Current setup contains:
 * [argo-cd](https://artifacthub.io/packages/helm/argo/argo-cd) - Declarative continuous deployment for Kubernetes, GitOps implementation.
 * Strimzi - Kafka cluster operator
 * [ProvectusLab Kafka UI](https://github.com/provectus/kafka-ui) - Kafka WEB UI
+* [Mongo Express](https://github.com/mongo-express/mongo-express) - MongoDB WEB UI
 
 ## Requirements
 
@@ -264,3 +265,17 @@ kubectl port-forward service/frontend :80
 ```
 
 and you can open page localy as `http://localhost:<allocated-port>`
+
+## Acesss Mongo Express
+
+Create local proxy to express service
+
+```bash
+# find full name of mongodb-ui-mongo-express pod
+kubectl get pod
+
+# use this id for port forward
+kubectl port-forward  mongodb-ui-mongo-express-<some-id> 8081:8081
+```
+
+open <http://localhost:8081/>
