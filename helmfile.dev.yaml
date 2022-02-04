@@ -111,3 +111,74 @@ releases:
     values:
       - watchNamespaces: 
           - default
+  
+  # https://artifacthub.io/packages/helm/bitnami/redis
+  - name: redis
+    chart: bitnami/redis
+    version: ^16.3.1
+    values:
+      - auth:
+          enabled: true
+          sentinel: true
+          existingSecret: redis-creds
+          existingSecretPasswordKey: REDIS_PASSWORD
+      - architecture: replication
+      - master:
+          service:
+            ports:
+              redis: 6379
+        
+          startupProbe:
+            enabled: true
+          
+          resources: 
+            requests:
+              cpu: "0.3"
+              memory: 256M
+            limits:
+              cpu: "0.5"
+              memory: 512M
+
+          persistence:
+            enabled: true
+            size: 10Gi
+      
+      - replica:
+          replicaCount: 2
+
+          startupProbe:
+            enabled: true
+
+          resources: 
+            requests:
+              cpu: "0.3"
+              memory: 256M
+            limits:
+              cpu: "0.5"
+              memory: 512M
+
+          persistence:
+            enabled: true
+            size: 10Gi
+
+          autoscaling:
+            enabled: false
+
+      - sentinel:
+          enabled: true
+          quorum: 2
+
+          service:
+            ports:
+              sentinel: 26379
+
+          startupProbe:
+            enabled: true
+
+          resources: 
+            requests:
+              cpu: "0.1"
+              memory: 128M
+            limits:
+              cpu: "0.2"
+              memory: 128M

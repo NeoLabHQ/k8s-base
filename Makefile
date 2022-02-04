@@ -35,7 +35,9 @@ apply-base:
 	make save-amocrm-creds
 	make save-mongodb-uri
 	make save-chatapi-creds
+	make save-redis-creds
 	make apply-cors
+	make apply-redisinsight
 	make apps
 
 apply-dev-base:
@@ -45,7 +47,9 @@ apply-dev-base:
 	make save-amocrm-creds
 	make save-mongodb-uri
 	make save-chatapi-creds
+	make save-redis-creds
 	make apply-dev-cors
+	make apply-redisinsight
 
 # if kubernetes dashboard cannot list something
 update-admin-role:
@@ -71,6 +75,9 @@ apply-cors:
 
 apply-dev-cors:
 	kubectl apply -f ./manifests/cors.dev.yaml
+
+apply-redisinsight:
+	kubectl apply -f ./manifests/redisinsight.yaml
 
 # ---------------------------------------------------------------------------------------------------------------------
 # MINIKUBE
@@ -130,6 +137,11 @@ save-chatapi-creds:
 	kubectl create secret generic chatapi-creds \
 		--from-literal='CHATAPI_API_URL=${CHATAPI_API_URL}' \
 		--from-literal='CHATAPI_API_KEY=${CHATAPI_API_KEY}' 
+
+save-redis-creds:
+	kubectl delete --ignore-not-found=true secret redis-creds
+	kubectl create secret generic redis-creds \
+		--from-literal='REDIS_PASSWORD=${REDIS_PASSWORD}'
 
 # ---------------------------------------------------------------------------------------------------------------------
 # CERTIFICATE MANAGER

@@ -1,0 +1,72 @@
+# based on https://docs.redis.com/latest/ri/installing/install-k8s/
+# RedisInsight service with name 'redisinsight-service'
+apiVersion: v1
+kind: Service
+metadata:
+  name: redisinsight-service      
+  labels:
+    app: redisinsight
+    tier: support-infrustructure
+    part-of: redis 
+spec:
+  ports:
+    - port: 80
+      targetPort: 8001
+  selector:
+    app: redisinsight
+    tier: support-infrustructure
+    part-of: redis
+---
+# RedisInsight deployment with name 'redisinsight'
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  # name should not be 'redisinsight'
+  # since the service creates
+  # environment variables that
+  # conflicts with redisinsight
+  # application's environment
+  # variables `REDISINSIGHT_HOST` and
+  # `REDISINSIGHT_PORT`
+  name: redisinsight #deployment name
+  labels:
+    app: redisinsight #deployment label
+    tier: support-infrustructure
+    part-of: redis
+spec:
+  replicas: 1 #a single replica pod
+  selector:
+    matchLabels:
+      app: redisinsight #which pods is the deployment managing, as defined by the pod template
+      tier: support-infrustructure
+      part-of: redis
+  template: #pod template
+    metadata:
+      labels:
+        app: redisinsight #label for pod/s
+        tier: support-infrustructure
+        part-of: redis
+    spec:
+      containers:
+      - image: redislabs/redisinsight:latest #repo/image
+        name:  redisinsight #Container name (DNS_LABEL, unique)
+        imagePullPolicy: IfNotPresent #Always pull image
+        
+        resources:
+          requests:
+            cpu: "0.1"
+            memory: 128M
+          limits:
+            cpu: "0.1"
+            memory: 128M
+        
+        ports:
+        - containerPort: 8001 #exposed container port and protocol
+          protocol: TCP
+
+        volumeMounts:
+        - name: db #Pod volumes to mount into the container's filesystem. Cannot be updated.
+          mountPath: /db
+      volumes:
+      - name: db
+        emptyDir: {} # node-ephemeral volume https://kubernetes.io/docs/concepts/storage/volumes/#emptydir

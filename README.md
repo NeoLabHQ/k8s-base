@@ -30,6 +30,7 @@ Current setup contains:
 * Strimzi - Kafka cluster operator
 * [ProvectusLab Kafka UI](https://github.com/provectus/kafka-ui) - Kafka WEB UI
 * [Mongo Express](https://github.com/mongo-express/mongo-express) - MongoDB WEB UI
+* [RedisInsight](https://docs.redis.com/latest/ri/) - Redis WEB UI
 
 ## Requirements
 
@@ -279,3 +280,17 @@ kubectl port-forward  mongodb-ui-mongo-express-<some-id> 8081:8081
 ```
 
 open <http://localhost:8081/>
+
+## Acesss RedisInsight
+
+Create local proxy to service
+
+```bash
+# find full name of redisinsight pod
+kubectl get pod
+
+# use this id for port forward
+kubectl port-forward  redisinsight-<some-id> 8001:8001
+```
+
+open <http://localhost:8001/>
