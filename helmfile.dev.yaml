@@ -78,6 +78,8 @@ releases:
       - grafana:
           enabled: true
           adminPassword: {{ env "GRAFANA_PASSSWORD" | default "prom-operator" }} 
+          image:
+            tag: 8.3.4
           ingress:
             enabled: false
             annotations:
@@ -95,10 +97,21 @@ releases:
     namespace: monitoring-logs-trace-stack
     createNamespace: true
     chart: grafana/loki-stack
-    version: ^2.4.1
+    version: ^2.5.1
     values:
       - promtail:
           enabled: true
+          pipelineStages:
+          - docker:
+          - cri: {} # for correctly parse json logs
+          - match:
+              selector: '{app="eventrouter"}'
+              stages:
+              - json:
+                  expressions:
+                    namespace: event.metadata.namespace
+              - labels:
+                  namespace: ""
       - fluent-bit: # can work faster, but plugin for loki not support pod labels
           enabled: false
 

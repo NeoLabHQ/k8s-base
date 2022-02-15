@@ -48,7 +48,7 @@ spec:
         part-of: redis
     spec:
       containers:
-      - image: redislabs/redisinsight:latest #repo/image
+      - image: redislabs/redisinsight:1.11.1 #repo/image
         name:  redisinsight #Container name (DNS_LABEL, unique)
         imagePullPolicy: IfNotPresent #Always pull image
         

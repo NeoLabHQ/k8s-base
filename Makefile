@@ -38,6 +38,7 @@ apply-base:
 	make save-redis-creds
 	make apply-cors
 	make apply-redisinsight
+	make apply-eventrouter
 	make apps
 
 apply-dev-base:
@@ -50,6 +51,7 @@ apply-dev-base:
 	make save-redis-creds
 	make apply-dev-cors
 	make apply-redisinsight
+	make apply-eventrouter
 
 # if kubernetes dashboard cannot list something
 update-admin-role:
@@ -78,6 +80,9 @@ apply-dev-cors:
 
 apply-redisinsight:
 	kubectl apply -f ./manifests/redisinsight.yaml
+
+apply-eventrouter:
+	kubectl apply -f ./manifests/eventrouter.yaml
 
 # ---------------------------------------------------------------------------------------------------------------------
 # MINIKUBE

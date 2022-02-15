@@ -31,6 +31,7 @@ Current setup contains:
 * [ProvectusLab Kafka UI](https://github.com/provectus/kafka-ui) - Kafka WEB UI
 * [Mongo Express](https://github.com/mongo-express/mongo-express) - MongoDB WEB UI
 * [RedisInsight](https://docs.redis.com/latest/ri/) - Redis WEB UI
+* [EventRouter](https://github.com/heptiolabs/eventrouter) - Exports Kubernetes events as logs
 
 ## Requirements
 
@@ -294,3 +295,14 @@ kubectl port-forward  redisinsight-<some-id> 8001:8001
 ```
 
 open <http://localhost:8001/>
+
+## Access EventRouter
+
+Events in Kuberentes stored about 1 hour,
+for increase time range we using EventRouter,
+which export events as logs.
+You can easily find this logs in Grafana.
+Just follow this steps:
+
+1) Go to Grafana Loki page
+2) Apply query `{app="eventrouter"}`
