@@ -135,6 +135,11 @@ releases:
       - fluent-bit: # can work faster, but plugin for loki not support pod labels
           enabled: false
 
+      - loki:
+          persistence:
+            enabled: true
+            size: 40Gi
+
   # https://artifacthub.io/packages/helm/grafana/tempo-distributed
   - name: tempo
     namespace: monitoring-logs-trace-stack

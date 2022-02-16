@@ -115,6 +115,11 @@ releases:
       - fluent-bit: # can work faster, but plugin for loki not support pod labels
           enabled: false
 
+      - loki:
+          persistence:
+            enabled: true
+            size: 10Gi
+
   # https://artifacthub.io/packages/helm/bitnami/mongodb
   - name: mongodb
     namespace: default
