@@ -28,18 +28,19 @@ sync:
 	make apply-base
 
 apply-base:
+	make certificate-issuer-prod
 	make create-dashboard-role
 	make save-docker-hub-creds
-	make save-stackgres-profiles
 	make save-wasabi-creds
 	make save-amocrm-creds
 	make save-mongodb-creds
 	make save-chatapi-creds
 	make save-redis-creds
 	make apply-cors
-	make apply-redisinsight
-	make apply-eventrouter
 	make apps
+#	make apply-redisinsight
+#	make save-stackgres-profiles
+#	make apply-eventrouter
 
 apply-dev-base:
 	make create-dashboard-role

@@ -142,11 +142,7 @@ Then you can open page and pass token:
 create local proxy
 
 ```bash
-# find full name of kubernetes dashboard pod
-kubectl get pod -n kubernetes-dashboard
-
-# use this id for port forward
-kubectl port-forward -n kubernetes-dashboard kubernetes-dashboard-<some-id> 8443:8443
+kubectl -n kubernetes-dashboard port-forward svc/kubernetes-dashboard 8443:443
 ```
 
 open <http://localhost:8443/>
@@ -183,11 +179,7 @@ Acording to their [roadmap](https://opentelemetry.io/status/) I've expecting to 
 create local proxy
 
 ```bash
-# find full name of kube-prometheus-stack-grafana pod
-kubectl get pod -n monitoring-logs-trace-stack
-
-# use this id for port forward
-kubectl port-forward -n monitoring-logs-trace-stack  kube-prometheus-stack-grafana-<some-id> 8081:3000
+kubectl port-forward -n monitoring-logs-trace-stack  svc/kube-prometheus-stack-grafana 8081:80
 ```
 
 open <http://localhost:8443/>
@@ -228,12 +220,8 @@ Get password to admin account
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d && echo
 # copy password
 
-# Find full pod name
-kubectl get pod -n argocd
-# copy name starting with argocd-server-*
-
 # Run proxy to pod
-kubectl port-forward -n argocd argocd-server-<real-id> 8080:8080
+kubectl port-forward -n argocd svc/argocd-server 8080:80
 ```
 
 open <localhost:8080> and use `admin` as username
@@ -277,7 +265,7 @@ Create local proxy to express service
 kubectl get pod
 
 # use this id for port forward
-kubectl port-forward  mongodb-ui-mongo-express-<some-id> 8081:8081
+kubectl port-forward  svc/mongodb-ui-mongo-express 8081:8081
 ```
 
 open <http://localhost:8081/>

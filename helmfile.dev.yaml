@@ -102,16 +102,7 @@ releases:
       - promtail:
           enabled: true
           pipelineStages:
-          - docker:
           - cri: {} # for correctly parse json logs
-          - match:
-              selector: '{app="eventrouter"}'
-              stages:
-              - json:
-                  expressions:
-                    namespace: event.metadata.namespace
-              - labels:
-                  namespace: ""
       - fluent-bit: # can work faster, but plugin for loki not support pod labels
           enabled: false
 

@@ -50,7 +50,7 @@ releases:
     namespace: kubernetes-dashboard
     createNamespace: true
     chart: kubernetes-dashboard/kubernetes-dashboard
-    version: ^4.5.0
+    version: ^5.2.0
     values:
       - ingress:
           enabled: false
@@ -98,8 +98,6 @@ releases:
       - grafana:
           enabled: true
           adminPassword: {{ env "GRAFANA_PASSSWORD" | default "prom-operator" }} 
-          image:
-            tag: 8.3.4
           ingress:
             enabled: false
             annotations:
@@ -121,24 +119,41 @@ releases:
     values:
       - promtail:
           enabled: true
+
           pipelineStages:
-          - docker:
           - cri: {} # for correctly parse json logs
-          - match:
-              selector: '{app="eventrouter"}'
-              stages:
-              - json:
-                  expressions:
-                    namespace: event.metadata.namespace
-              - labels:
-                  namespace: ""
       - fluent-bit: # can work faster, but plugin for loki not support pod labels
           enabled: false
 
       - loki:
+          initContainers:
+          - name: fix-permissions
+            image: busybox:latest
+            securityContext:
+              privileged: true
+              runAsGroup: 0
+              runAsNonRoot: false
+              runAsUser: 0
+            command:
+            - sh
+            - -c
+            - >-
+              id;
+              ls -la /data/;
+              mkdir -p /data/global/loki;
+              chown 10001:10001 /data/global/loki
+            volumeMounts:
+            - mountPath: /data
+              name: storage
           persistence:
             enabled: true
-            size: 40Gi
+            size: 20Gi
+            accessModes:
+            - ReadWriteOnce
+          securityContext:
+            runAsGroup: 0
+            runAsNonRoot: false
+            runAsUser: 0
 
   # https://artifacthub.io/packages/helm/grafana/tempo-distributed
   - name: tempo
