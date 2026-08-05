@@ -5,3 +5,6 @@ notes.yaml
 
 .docker/
 .mongodb-replacaset-key/
+.specs/scratchpad/*.md
+.specs/analysis/*.md
+.specs/reports/*.md
