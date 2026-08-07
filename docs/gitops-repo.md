@@ -1,6 +1,6 @@
 # What this repository expects of the gitops repository
 
-k8s-base seeds a cluster and then gets out of the way. Everything the cluster
+k8s-seed seeds a cluster and then gets out of the way. Everything the cluster
 actually needs arrives afterwards, from a separate gitops repository that Argo CD
 reconciles continuously.
 
@@ -10,7 +10,7 @@ content would start rotting the day the real one diverges from it.
 
 ## The split rule
 
-k8s-base contains only what cannot be reconciled by Argo CD, because it must
+k8s-seed contains only what cannot be reconciled by Argo CD, because it must
 exist before Argo CD does: the argo-cd Helm release, the credential Argo CD reads
 the gitops repository with, and the root Application that points it there.
 
@@ -68,7 +68,7 @@ The main cluster additionally runs **Kargo**, for promotion between environments
 Spokes do not.
 
 None of these ship here. Argo Rollouts and Kargo in particular are deliberately
-absent from k8s-base: installing them at seed time would mean upgrading them by
+absent from k8s-seed: installing them at seed time would mean upgrading them by
 re-running a bootstrap CLI against a production cluster.
 
 ## Argo CD must manage itself, at the version it was seeded with

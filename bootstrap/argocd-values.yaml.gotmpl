@@ -14,7 +14,7 @@ global:
     # Which cluster this Argo CD is the control plane for. The only per-cluster
     # value in the seed; everything else here is environment configuration.
     # Quoted: a purely numeric cluster name must still be a string label.
-    k8s-base/cluster: {{ .Values.clusterName | quote }}
+    k8s-seed/cluster: {{ .Values.clusterName | quote }}
 
 configs:
   params:

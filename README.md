@@ -1,4 +1,4 @@
-# k8s-base
+# k8s-seed
 
 The seed for a Kubernetes cluster: install Argo CD, point it at a gitops
 repository, hand over.
@@ -9,7 +9,7 @@ install itself, and then stops.
 
 ## The split rule
 
-**k8s-base contains only what cannot be reconciled by Argo CD, because it must
+**k8s-seed contains only what cannot be reconciled by Argo CD, because it must
 exist before Argo CD does.** Everything else belongs in the gitops repository.
 
 The reasoning is about where change is safe. The bootstrap path here is

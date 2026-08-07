@@ -31,11 +31,11 @@ assumption that only holds for the main cluster.
 
 Parked for the later multi-cluster task: with per-cluster ArgoCD, Kargo on main will need to
 either reach spoke ArgoCD APIs for `argocd-update`, or fall back to pure git-commit promotion.
-Do not encode either choice into k8s-base now.
+Do not encode either choice into k8s-seed now.
 
 #### The split rule
 
-k8s-base contains **only what cannot be reconciled by ArgoCD, because it must exist before
+k8s-seed contains **only what cannot be reconciled by ArgoCD, because it must exist before
 ArgoCD does.** Everything else belongs in the `gitops` repository.
 
 The bootstrap path is imperative, human-run, and uses admin credentials. It is not reconciled,
@@ -49,7 +49,7 @@ re-running a CLI from a laptop against production belongs in gitops.
 #### What this repository contains after the refactor
 
 ```
-k8s-base/
+k8s-seed/
   helmfile.yaml                     argo-cd release only (Dex bundled via chart)
   bootstrap/
     argocd-values.yaml.gotmpl       chart values, rendered by helmfile

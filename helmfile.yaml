@@ -1,4 +1,4 @@
-# The whole of k8s-base: one Helm release.
+# The whole of k8s-seed: one Helm release.
 #
 # This repository seeds only what cannot be reconciled by Argo CD, because it
 # must exist before Argo CD does. Everything else a cluster needs — ingress,

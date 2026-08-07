@@ -201,7 +201,7 @@ current-context:
 kind-cluster:
     #!/usr/bin/env bash
     set -euo pipefail
-    name="${CLUSTER_NAME:-k8s-base}"
+    name="${CLUSTER_NAME:-k8s-seed}"
     kind create cluster --name "$name"
     kubectl cluster-info --context "kind-$name"
 
