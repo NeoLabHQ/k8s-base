@@ -1,335 +1,63 @@
+# The whole of k8s-base: one Helm release.
+#
+# This repository seeds only what cannot be reconciled by Argo CD, because it
+# must exist before Argo CD does. Everything else a cluster needs — ingress,
+# certificates, DNS, Argo CD's own upgrades — is delivered by the gitops
+# repository through the root Application in bootstrap/root-app.yaml.
+# See docs/gitops-repo.md for the split rule.
+
+# Helmfile requires `environments` to live in its own YAML part, ahead of the
+# part that consumes it.
+environments:
+  default:
+    values:
+      # requiredEnv, not `env | default`: a production cluster silently seeded
+      # at argo.k8s.local pointing at no gitops repository is worse than a
+      # failed render. Missing values fail here, before the cluster is touched.
+      - clusterName: {{ requiredEnv "CLUSTER_NAME" | quote }}
+        argoHost: {{ requiredEnv "ARGO_HOST" | quote }}
+        # Nothing in the chart reads this. It is declared here so that the check
+        # lives at render time for every caller, not only for `just bootstrap`:
+        # the gitops credential Secret and the root Application are applied
+        # outside the Helm release (see bootstrap/repo-secret.yaml), so without
+        # this line a bare `helmfile apply` would seed Argo CD against no
+        # gitops repository at all and only fail two steps later.
+        gitopsRepoUrl: {{ requiredEnv "GITOPS_REPO_URL" | quote }}
+        oidc:
+          clientId: {{ requiredEnv "OIDC_CLIENT_ID" | quote }}
+          clientSecret: {{ requiredEnv "OIDC_CLIENT_SECRET" | quote }}
+          # Unset is a correct default: it selects the Dex bundled in the chart.
+          issuerUrl: {{ env "OIDC_ISSUER_URL" | quote }}
+          # Optional. Restricts GitHub sign-in to members of this organisation.
+          # Empty is a usable default but a wide one — see the comment on the
+          # connector in bootstrap/argocd-values.yaml.gotmpl.
+          githubOrg: {{ env "GITHUB_ORG" | quote }}
+
+---
 repositories:
-  - name: kubernetes-dashboard
-    url: https://kubernetes.github.io/dashboard/
-  - name: jetstack 
-    url: https://charts.jetstack.io
-  - name: prometheus-community
-    url: https://prometheus-community.github.io/helm-charts
-  - name: grafana 
-    url: https://grafana.github.io/helm-charts
   - name: argo
     url: https://argoproj.github.io/argo-helm
-  - name: ingress-nginx
-    url: https://kubernetes.github.io/ingress-nginx
-  - name: bitnami
-    url: https://charts.bitnami.com/bitnami
-  - name: cowboysysop 
-    url: https://cowboysysop.github.io/charts/
-  - name: kong
-    url: https://charts.konghq.com
-  - name: strimzi
-    url: https://strimzi.io/charts/
-  - name: kafka-ui
-    url: https://provectus.github.io/kafka-ui
 
 releases:
-  # https://cert-manager.io/docs/installation/kubernetes/#installing-with-helm
-  - name: cert-manager
-    namespace: cert-manager
-    createNamespace: true
-    chart: jetstack/cert-manager
-    version: ^1.3.1
-    values:
-      - installCRDs: true
-
-  # https://artifacthub.io/packages/helm/ingress-nginx/ingress-nginx
-  # Uncomment if you need ingress based on nginx and comment other ingress
-  # - name: ingress-nginx
-  #   chart: ingress-nginx/ingress-nginx
-  #   version: ^3.35.0
-
-  # https://artifacthub.io/packages/helm/kong/kong
-  - name: kong
-    namespace: kong
-    createNamespace: true
-    chart: kong/kong
-    version: ^2.6.3
-
-  # https://artifacthub.io/packages/helm/k8s-dashboard/kubernetes-dashboard
-  - name: kubernetes-dashboard
-    namespace: kubernetes-dashboard
-    createNamespace: true
-    chart: kubernetes-dashboard/kubernetes-dashboard
-    version: ^5.2.0
-    values:
-      - ingress:
-          enabled: false
-          hosts:
-            - {{ env "K8S_DASHBOARD_HOST" | default "dashboard.k8s.local" }} 
-          annotations:
-            kubernetes.io/ingress.class: nginx
-            cert-manager.io/cluster-issuer: {{ env "SERTIFICATE_ISSUER" | default "letsencrypt-staging" }}
-          tls:
-            - hosts:
-              - {{ env "K8S_DASHBOARD_HOST" | default "dashboard.k8s.local" }} 
-              secretName: kubernetes-dashboard-tls
-      - metricsScraper: 
-          enabled: true
-      - metrics-server:
-          enabled: true 
-
-  # https://artifacthub.io/packages/helm/prometheus-community/kube-prometheus-stack
-  - name: kube-prometheus-stack
-    namespace: monitoring-logs-trace-stack
-    createNamespace: true
-    chart: prometheus-community/kube-prometheus-stack
-    version: ^17.1.1
-    values:
-      # https://github.com/prometheus-community/helm-charts/blob/main/charts/alertmanager/values.yaml
-      - alertmanager:
-          enabled: false
-          config:
-            receivers:
-              - name: default-receiver
-                # https://prometheus.io/docs/alerting/latest/configuration/#receiver
-          ingress:
-            enabled: false
-            ingressClassName: nginx
-            hosts:
-              - {{ env "ALERT_MANAGER_HOST" | default "alertmanager.k8s.local" }}
-            annotations:
-              kubernetes.io/ingress.class: nginx
-              cert-manager.io/cluster-issuer: {{ env "SERTIFICATE_ISSUER" | default "letsencrypt-staging" }}
-            tls:
-              - hosts:
-                - {{ env "ALERT_MANAGER_HOST" | default "alertmanager.k8s.local" }}
-                secretName: alertmanager-general-tls
-      # https://github.com/grafana/helm-charts/blob/main/charts/grafana/values.yaml
-      - grafana:
-          enabled: true
-          adminPassword: {{ env "GRAFANA_PASSSWORD" | default "prom-operator" }} 
-          ingress:
-            enabled: false
-            annotations:
-              kubernetes.io/ingress.class: nginx
-              cert-manager.io/cluster-issuer: {{ env "SERTIFICATE_ISSUER" | default "letsencrypt-staging" }}
-            hosts:
-                - {{ env "GRAFANA_HOST" | default "grafana.k8s.local" }}
-            tls:
-              - hosts:
-                - {{ env "GRAFANA_HOST" | default "grafana.k8s.local" }}
-                secretName: grafana-general-tls
-  
-  # https://artifacthub.io/packages/helm/grafana/loki-stack
-  - name: loki
-    namespace: monitoring-logs-trace-stack
-    createNamespace: true
-    chart: grafana/loki-stack
-    version: ^2.5.1
-    values:
-      - promtail:
-          enabled: true
-
-          pipelineStages:
-          - cri: {} # for correctly parse json logs
-      - fluent-bit: # can work faster, but plugin for loki not support pod labels
-          enabled: false
-
-      - loki:
-          initContainers:
-          - name: fix-permissions
-            image: busybox:latest
-            securityContext:
-              privileged: true
-              runAsGroup: 0
-              runAsNonRoot: false
-              runAsUser: 0
-            command:
-            - sh
-            - -c
-            - >-
-              id;
-              ls -la /data/;
-              mkdir -p /data/global/loki;
-              chown 10001:10001 /data/global/loki
-            volumeMounts:
-            - mountPath: /data
-              name: storage
-          persistence:
-            enabled: true
-            size: 20Gi
-            accessModes:
-            - ReadWriteOnce
-          securityContext:
-            runAsGroup: 0
-            runAsNonRoot: false
-            runAsUser: 0
-
-  # https://artifacthub.io/packages/helm/grafana/tempo-distributed
-  - name: tempo
-    namespace: monitoring-logs-trace-stack
-    createNamespace: true
-    chart: grafana/tempo-distributed
-    version: ^0.9.6
-
-  # https://artifacthub.io/packages/helm/argo/argo-cd
+  # Release name `argocd` (not `argo-cd`) keeps the canonical resource names
+  # every Argo CD document and command assumes: argocd-server, argocd-repo-server.
   - name: argocd
     namespace: argocd
     createNamespace: true
     chart: argo/argo-cd
-    version: ^3.11.1
+    # Pinned, never a range: the gitops repository must install this exact
+    # version when it adopts the release. See docs/gitops-repo.md.
+    #
+    # Chosen, not stale. Index checked 2026-08-06: 10.3.0 (2026-08-05) and
+    # 10.2.3 (2026-08-04) both ship Argo CD v3.5.0, two days old at the time.
+    # 10.2.2 is v3.4.6, the soaked v3.4 line. Since every cluster is seeded with
+    # this version and gitops has to match it exactly, a two-day-old minor is
+    # the wrong thing to standardise on.
+    #
+    # Revisit when either is true, whichever comes first: a v3.5 chart has run in
+    # a non-production cluster here for a full release cycle, or the date passes
+    # 2026-11-06. A deliberate lag nobody re-checks is indistinguishable from
+    # staleness, so this pin needs a trigger, not just a reason.
+    version: 10.2.2
     values:
-      - installCRDs: false # for Helm 3 compitability
-      - server:
-          extraArgs:
-            - --insecure # fix for https://github.com/argoproj/argo-cd/issues/2953
-          ingress:
-            enabled: false
-            ingressClassName: nginx
-            https: true
-            annotations:
-              cert-manager.io/cluster-issuer: {{ env "SERTIFICATE_ISSUER" | default "letsencrypt-staging" }}
-            hosts:
-              - {{ env "ARGO_HOST" | default "argo.k8s.local" }}
-            tls:
-              - hosts:
-                - {{ env "ARGO_HOST" | default "argo.k8s.local" }}
-                secretName: argo-general-tls
-      - configs.secret.githubSecret: {{ env "ARGO_GITHUB_SECRET" | default "" }}
-      - configs.secret.bitbucketSecret: {{ env "ARGO_BITBUCKET_SECRET" | default "" }}
-      - configs.secret.gitlabSecret: {{ env "ARGO_GITLAB_SECRET" | default "" }}
-
-  # https://artifacthub.io/packages/helm/bitnami/mongodb
-  - name: mongodb
-    namespace: default
-    chart: bitnami/mongodb
-    version: ^11.0.3
-    values:
-      - service.nameOverride: mongo
-      - architecture: replicaset
-      - auth:
-          enabled: true
-          rootUser: root
-          existingSecret: mongodb-config
-      - persistence:
-          size: 10G
-      # - persistence:
-      #     storageClass: civo-volume                
-
-  # https://artifacthub.io/packages/helm/cowboysysop/mongo-express
-  - name: mongodb-ui
-    namespace: default
-    chart: cowboysysop/mongo-express
-    version: ^2.6.0
-    values:
-      - replicaCount: 1
-      - resources:
-          requests:
-            cpu: "0.1"
-            memory: 128M
-          limits:
-            cpu: "0.2"
-            memory: 256M
-      - mongodbServer: mongodb-0.mongodb-headless.default.svc.cluster.local,mongodb-1.mongodb-headless.default.svc.cluster.local
-      - mongodbPort: 27017
-      - mongodbEnableAdmin: true
-      - mongodbAdminUsername: root
-      - mongodbAdminPassword: mongodb-omnigram-password
-
-  # https://stackgres.io/doc/latest/install/helm/
-  - name: stackgres-operator
-    namespace: stackgres
-    chart: https://stackgres.io/downloads/stackgres-k8s/stackgres/latest/helm/stackgres-operator.tgz
-    values:
-      - adminui.service.type: LoadBalancer
-      - grafana.autoEmbed: false
-      - adminui.service.type: LoadBalancer
-
-  # https://artifacthub.io/packages/helm/strimzi/strimzi-kafka-operator
-  - name: strimzi
-    namespace: strimzi
-    createNamespace: true
-    chart: strimzi/strimzi-kafka-operator
-    version: ^0.26.1
-    values:
-      - watchNamespaces: 
-          - default
-  
-  # https://github.com/provectus/kafka-ui/blob/master/charts/kafka-ui/README.md
-  - name: kafka-ui
-    chart: kafka-ui/kafka-ui
-    values:
-      - envs:
-          config: 
-            KAFKA_CLUSTERS_0_NAME: channels
-            KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: channels-kafka-bootstrap:9092
-      - resources: 
-          requests:
-            cpu: "0.1"
-            memory: 256M
-          limits:
-            cpu: "0.3"
-            memory: 256M
-
-  # https://artifacthub.io/packages/helm/bitnami/redis
-  - name: redis
-    chart: bitnami/redis
-    version: ^16.3.1
-    values:
-      - auth:
-          enabled: true
-          sentinel: true
-          existingSecret: redis-creds
-          existingSecretPasswordKey: REDIS_PASSWORD
-      - architecture: replication
-      - master:
-          service:
-            ports:
-              redis: 6379
-        
-          startupProbe:
-            enabled: true
-          
-          resources: 
-            requests:
-              cpu: "0.3"
-              memory: 256M
-            limits:
-              cpu: "0.5"
-              memory: 512M
-
-          persistence:
-            enabled: true
-            size: 10Gi
-      
-      - replica:
-          replicaCount: 2
-
-          startupProbe:
-            enabled: true
-
-          resources: 
-            requests:
-              cpu: "0.3"
-              memory: 256M
-            limits:
-              cpu: "0.5"
-              memory: 512M
-
-          persistence:
-            enabled: true
-            size: 10Gi
-
-          autoscaling:
-            enabled: false
-
-      - sentinel:
-          enabled: true
-          quorum: 2
-          masterSet: mymaster
-
-          service:
-            ports:
-              sentinel: 26379
-
-          startupProbe:
-            enabled: true
-
-          resources: 
-            requests:
-              cpu: "0.1"
-              memory: 128M
-            limits:
-              cpu: "0.2"
-              memory: 128M
-
+      - bootstrap/argocd-values.yaml.gotmpl

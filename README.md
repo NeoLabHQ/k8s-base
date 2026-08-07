@@ -1,37 +1,69 @@
-# Kubernetes Infrustructure Bootstrap
+# k8s-base
 
-Base services collection for production ready Kubernetes cluster.
+The seed for a Kubernetes cluster: install Argo CD, point it at a gitops
+repository, hand over.
 
-This collection based on know enterprise wide services, already used by many companies.
-Bootstrap contain base GitOps setup and examples for add new applications.
+That is the whole scope. This repository does not install ingress, certificates,
+monitoring, databases or applications. It installs the one thing that cannot
+install itself, and then stops.
 
-## Target
+## The split rule
 
-Goal of this bootstrap define vendor free bootstrap, which can be started in any type of cluster, not depend on cloud provider.
+**k8s-base contains only what cannot be reconciled by Argo CD, because it must
+exist before Argo CD does.** Everything else belongs in the gitops repository.
 
-But if it not problem for you, you can use [Bitnami Kubernetes Production Runtime](https://github.com/bitnami/kube-prod-runtime). BKPR alredy accessable for GKE, AKS, and Amazon EKS.
+The reasoning is about where change is safe. The bootstrap path here is
+imperative, human-run, and uses admin credentials. It is not reconciled, not
+drift-detected, and not reviewable as a diff against live state. Every piece of
+per-cluster branching placed here is logic that silently rots. Bootstrap runs
+once per cluster; gitops runs continuously — so anything that needs upgrading
+without re-running a CLI from a laptop against production belongs in gitops,
+where ApplicationSets and overlays are built for exactly that.
 
-You can fork this project for define your own infrsutructure bootstrap. Any PRs are allways welcome.
+The irreducible seed is three things:
 
-**Advice:** Don't mix infrustructure and business services, this setup only define infrsutructure,
-for define business services better use GitOps soltuions, like [ArgoCD](https://argoproj.github.io/argo-cd/),
-which already build it in this bootstrap.
+- the `argo-cd` Helm release,
+- the Secret holding the gitops repository credential,
+- the root `Application`, pointing at `clusters/<CLUSTER_NAME>/`.
 
-## Services
+## Layout
 
-Current setup contains:
+```
+helmfile.yaml                      the argo repository, one release, one environments block
+bootstrap/
+  argocd-values.yaml.gotmpl        chart values, rendered by helmfile as a Go template
+  repo-secret.yaml                 gitops repository credential
+  root-app.yaml                    root Application -> clusters/<CLUSTER_NAME>/
+docs/
+  how-to-launch-cluster.md         the operational runbook
+  gitops-repo.md                   what this repository expects of the gitops repository
+justfile
+.env.example
+README.md
+```
 
-* [Kubernetes Dashboard](https://github.com/kubernetes/dashboard) - General-purpose web UI for Kubernetes clusters
-* [Cert-Manager](https://github.com/jetstack/cert-manager) - Automatically provision and manage TLS certificates in Kubernetes
-* [kube-prometheus-stack](https://artifacthub.io/packages/helm/prometheus-community/kube-prometheus-stack) - kube-prometheus-stack collects Kubernetes manifests, Grafana dashboards, and Prometheus rules combined with documentation and scripts to provide easy to operate end-to-end Kubernetes cluster monitoring with Prometheus using the Prometheus Operator.
-* [loki-stack](https://artifacthub.io/packages/helm/grafana/loki-stack) - Loki: like Prometheus, but for logs
-* [tempo-distributed](https://artifacthub.io/packages/helm/grafana/tempo-distributed) - Grafana Tempo in MicroService mode
-* [argo-cd](https://artifacthub.io/packages/helm/argo/argo-cd) - Declarative continuous deployment for Kubernetes, GitOps implementation.
-* Strimzi - Kafka cluster operator
-* [ProvectusLab Kafka UI](https://github.com/provectus/kafka-ui) - Kafka WEB UI
-* [Mongo Express](https://github.com/mongo-express/mongo-express) - MongoDB WEB UI
-* [RedisInsight](https://docs.redis.com/latest/ri/) - Redis WEB UI
-* [EventRouter](https://github.com/heptiolabs/eventrouter) - Exports Kubernetes events as logs
+## Architecture
+
+Every cluster runs its own Argo CD and self-manages from its own path in a shared
+gitops repository: a main cluster, which also hosts Kargo, plus dev, staging and
+per-white-label production clusters. No cluster reaches another's Kubernetes API.
+
+Because the seed has to be identical on every one of them, exactly one value here
+is per-cluster: **`CLUSTER_NAME`**, which selects `clusters/<name>/`. Everything
+else — the gitops repository URL and credential, the Argo CD hostname, the OIDC
+client — is environment configuration, not topology.
+
+The bootstrap sequence is four steps, and `just bootstrap` keeps all four
+visible rather than hiding the last one in a lifecycle hook:
+
+1. `helmfile apply` — namespace, argo-cd release, then the repository credential
+2. wait for `argocd-server`
+3. `kubectl apply -f bootstrap/root-app.yaml`
+4. Argo CD syncs `clusters/<CLUSTER_NAME>/`, which contains the Application that
+   manages Argo CD itself — handoff complete
+
+After step 4 the cluster manages itself and **bootstrap must never be run against
+it again**. See [docs/how-to-launch-cluster.md](docs/how-to-launch-cluster.md).
 
 ## Requirements
 
@@ -42,255 +74,101 @@ Install CLIs:
 * [Helm](https://helm.sh/) - The package manager for Kubernetes.
 * [Helm Diff](https://github.com/databus23/helm-diff) - A helm plugin that shows a diff explaining what a helm upgrade would change
 * [Hemlile](https://github.com/roboll/helmfile) - One file for manage multiple heml charts.
-* [GNU Make](https://www.gnu.org/software/make/manual/make.html) - install by `sudo apt-get install build-essential`
+* [Justfile](https://github.com/casey/just) - install by `cargo install just`
 
-## First Start Guide
-
-`helmfile` uses enviroment variables for set parametors of charts.
-`Makefile` automatically setup values from `.env` file.
-
-1) Copy `.env.example` and name it as `.env`
-2) Change variables in `.env` as you want.
-3) Run `make setup` - will upload all services without check on changes.
 
 ## Usage
 
-For setup basic infrustructure run
+```bash
+cp .env.example .env    # then fill it in
+just bootstrap          # seed the cluster and hand it over
+just verify             # assert Argo CD is healthy and the root Application is in a sane state
+just argo-password      # day-0 admin password
+just argo-ui            # port-forward the UI to http://localhost:8080
+```
+
+`just --list` shows the rest. `just contexts` and `just current-context` are
+worth running before `just bootstrap`.
+
+Full walkthrough, including registering the GitHub OAuth App and reading the
+failure modes: **[docs/how-to-launch-cluster.md](docs/how-to-launch-cluster.md)**.
+
+What the gitops repository has to provide for any of this to be useful:
+**[docs/gitops-repo.md](docs/gitops-repo.md)**.
+
+## Modifying it
+
+**Adding a component?** It almost certainly goes in the gitops repository, not
+here. The bar for adding anything to this repository is that Argo CD cannot
+install it, because Argo CD does not exist yet.
+
+**Changing Argo CD's configuration** means editing
+`bootstrap/argocd-values.yaml.gotmpl`, and then making the matching change in the
+gitops repository's self-management Application. The two must stay equivalent —
+if the seeded release and the Application that adopts it disagree on chart
+version or values, they will fight over the same resources. `helmfile.yaml` pins
+a literal chart version, never a range, so that it can be matched exactly.
+
+**Adding a parameter** starts with asking which of the two consumers reads it,
+because they are wired up in different files and fail in different places. Both
+kinds also go in `.env.example`.
+
+*Chart values* — anything `bootstrap/argocd-values.yaml.gotmpl` reads — go in the
+`environments` block of `helmfile.yaml`. Use `requiredEnv` unless a default is
+genuinely correct; `env | default` is how a production cluster gets silently
+seeded at `argo.k8s.local` pointing at no gitops repository. Required values fail
+during rendering, before anything touches the cluster.
+
+*Manifest values* — anything `bootstrap/repo-secret.yaml` or
+`bootstrap/root-app.yaml` reads as `${VAR}` — never reach helm at all. They are
+expanded by the `envsubst` call in the applying recipe, so add the name to that
+recipe's substitution list and guard it there with `: "${VAR:?set VAR in .env}"`.
+The guard is not optional: `envsubst` turns an unset or empty variable into the
+empty string and exits 0, so without it the manifest reaches the cluster
+structurally valid and quietly blank. `GITOPS_REPO_USERNAME`,
+`GITOPS_REPO_PASSWORD` and `GITOPS_TARGET_REVISION` are this kind.
+`GITOPS_REPO_URL` is deliberately both — guarded in the recipes *and* declared
+`requiredEnv`, so a bare `helmfile apply` catches it too.
+
+**Checking a change without a cluster:**
 
 ```bash
-# Will deploy new or changed charts first time
-make setup
+# renders the chart with your .env
+helmfile template
+
+# validates the static manifests, Application CRD included
+CRDS='https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
+for f in bootstrap/*.yaml; do
+  envsubst < "$f" | kubeconform -strict -schema-location default -schema-location "$CRDS" -
+done
 ```
 
-For update only changed charts run
-
-```bash
-make sync
-```
-
-### Setup certificates
-
-For use https you need setup sertificates, you can do it by next commands
-
-```bash
-# Will be used by lets encrypt for send emails about certificate updates
-export CERTIFICATE_EMAIL=user@email.com
-# Will create issuers (certificate providers)
-make certificate-issuers
-```
-
-if `make sync`  were made first time in cluster wait some time before setup certificates,
-k8s need time for load certificate manager operator
-
-More about [ceertificate configuration](https://cert-manager.io/docs/configuration/acme/)
-and [tutorial](https://cert-manager.io/docs/tutorials/acme/ingress/) for lets encrypt
-
-**IMPORTANT:** If you not setup sertificates or setup them incorrectly, Ingresses will fallback to self-signed sertificates.
-
-### Minikube
-
-For start local cluster and synchronise, just run
-
-```bash
-make local
-```
-
-It will run next commands, but you can run them by self:
-
-```bash
-# Start minikube server
-minikube start
-
-# Enable minikkube ingress before sync
-make minikube-ingress # or minikube addons enable ingress
-
-# for synchromise cluster
-make setup # or helmfile sync
-```
-
----
-
-Get external ip, for access your cluster outside
-
-```bash
-make minikube-ip
-```
-
-And add to `/etc/hosts` file next line
-
-```hosts
-# For access local cubernetes cluster
-<your-external-ip> argo.k8s.local dashboard.k8s.local prometheus.k8s.local thanos-gateway.k8s.local grafana.k8s.local alertmanager.k8s.local k8s.local
-```
-
-## Access Kubernetes Dashboard
-
-For access kubernets dashboard you need firstly get token:
-
-```bash
-# list existing secrets
-kubectl -n kubernetes-dashboard get secrets
-# pass correct name of secret
-kubectl -n kubernetes-dashboard describe secret kubernetes-dashboard-token-<some-id>
-# copy token
-```
-
-Then you can open page and pass token:
-
-### Through proxy
-
-create local proxy
-
-```bash
-kubectl -n kubernetes-dashboard port-forward svc/kubernetes-dashboard 8443:443
-```
-
-open <http://localhost:8443/>
-and pass copied token
-
-### Though Ingress
-
-open <https://dashboard.k8s.local> and pass copied token
-
-## Metrics, Logs, Tracing
-
-**In general this is self containing solution, which must just work out of the box.**
-
-For metrics collection used [Prometheus](https://prometheus.io/).
-For togs collection [Promtail](https://grafana.com/docs/loki/latest/clients/promtail/) and [Loki](https://grafana.com/oss/loki/).
-For traing collection used [Tempo](https://grafana.com/oss/tempo/).
-For dashboard used [Grafana](https://grafana.com/grafana/).
-
-In future release I would like to migrate all what possible to cloud IaaS solutions.
-
-### Why not ELK stack?
-
-You can find comparisions from Grafana guys [there](https://grafana.com/docs/loki/latest/overview/comparisons/). In simple words, Loki + Prometheus + Tempo + Grafana is simpler to setup then ELK, but it have some limitations.
-I actually love Kibana, and have plans to add it.
-
-### Why not OpenTelemetry?
-
-I love [OpenTelemetry](https://opentelemetry.io/) idea of vendor agnostic fully containing stack, but it not ready for most of languages (in alpha or beta stages) right now. I would like to swith to OpenTelemetry when it will be ready for production.
-
-Acording to their [roadmap](https://opentelemetry.io/status/) I've expecting to add OpenTelemetry in 2022, when they will add logs component support.
-
-## Acesss Grafana
-
-create local proxy
-
-```bash
-kubectl port-forward -n monitoring-logs-trace-stack  svc/kube-prometheus-stack-grafana 8081:80
-```
-
-open <http://localhost:8443/>
-for login as admin use username `admin` and password `prom-operator`
-
-You can change password in `helfile.yaml` in `kube-prometheus-stack` grafana section.
-
-### Access Logs
-
-Open explore tab in Grafana, abd swith Prometheus to Loki. On log browser you can see posible valuues to search.
-
-### Access Traces
-
-Open explore tab in Grafana, abd swith Prometheus to Tempo.
-
-If Tempo not connected probably you need enable Tempo.
-
-#### Enable Tempo
-
-Open Configuration.DataSourses page in Grafana -> click Add data sourses -> click Tempo ->
-fill URL with `http://tempo-tempo-distributed-query-frontend:3100` and set Trace to Logs section with Data Source `Loki`
-
-## Access kafka UI
-
-To connect to Kafka-UI web application need to execute:
-
-```bash
-kubectl port-forward svc/kafka-ui 8080:80
-```
-
-Open the <http://127.0.0.1:8080> on the browser to access Kafka-UI.
-
-## Access ArgoCD
-
-Get password to admin account
-
-```bash
-kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d && echo
-# copy password
-
-# Run proxy to pod
-kubectl port-forward -n argocd svc/argocd-server 8080:80
-```
-
-open <localhost:8080> and use `admin` as username
-
-### Create Application
-
-You can easily [create application through:
-
-* [UI application](https://argo-cd.readthedocs.io/en/stable/getting_started/#creating-apps-via-ui)
-* [CLI](https://argo-cd.readthedocs.io/en/stable/getting_started/#creating-apps-via-cli).
-* [Declarative setup](https://argoproj.github.io/argo-cd/operator-manual/declarative-setup/), which used in this repo.
-
-### Declarative application setup
-
-For deploy [applications](https://argoproj.github.io/argo-cd/operator-manual/declarative-setup/#applications) from `applications` folder just run.
-
-```bash
-make apps # Will deploy application configurations
-```
-
-For add new applications just add new `yaml` in `applications` folder, like example application.
-You also can use this foler for setup [Project](https://argoproj.github.io/argo-cd/operator-manual/declarative-setup/#projects), or [repository](https://argoproj.github.io/argo-cd/operator-manual/declarative-setup/#repositories), or [app of apps](https://argoproj.github.io/argo-cd/operator-manual/declarative-setup/#app-of-apps).
-
-### Access deployed application
-
-You can access already deployed application thourgh port-forwarding, just run:
-
-```bash
-kubectl port-forward service/frontend :80
-# will choose local port and proxy it to service with name frontend (example application)
-```
-
-and you can open page localy as `http://localhost:<allocated-port>`
-
-## Acesss Mongo Express
-
-Create local proxy to express service
-
-```bash
-# find full name of mongodb-ui-mongo-express pod
-kubectl get pod
-
-# use this id for port forward
-kubectl port-forward  svc/mongodb-ui-mongo-express 8081:8081
-```
-
-open <http://localhost:8081/>
-
-## Acesss RedisInsight
-
-Create local proxy to service
-
-```bash
-# find full name of redisinsight pod
-kubectl get pod
-
-# use this id for port forward
-kubectl port-forward  redisinsight-<some-id> 8001:8001
-```
-
-open <http://localhost:8001/>
-
-## Access EventRouter
-
-Events in Kuberentes stored about 1 hour,
-for increase time range we using EventRouter,
-which export events as logs.
-You can easily find this logs in Grafana.
-Just follow this steps:
-
-1) Go to Grafana Loki page
-2) Apply query `{app="eventrouter"}`
+Rendering with a required variable unset should fail. That is the fail-fast
+behaviour working, not a bug.
+
+## Authentication
+
+Argo CD authenticates through the Dex bundled in its own Helm chart, which
+delegates to GitHub — no extra components. Each cluster needs its own GitHub
+OAuth App, because an OAuth App permits a single callback URL.
+
+The issuer is a parameter (`OIDC_ISSUER_URL`). Leave it empty and the bundled Dex
+is the issuer. Set it and the bundled Dex switches off and Argo CD trusts the
+issuer you named, so moving to a central Dex broker later is a change of values
+rather than a reshaping of the seed.
+
+Set `GITHUB_ORG` to restrict who can complete the sign-in to members of one
+organisation. It is optional and narrows authentication only.
+
+Authorisation is separate and the seed grants none of it: Argo CD's default RBAC
+policy is empty, so a user who signs in successfully can still do nothing.
+Mapping a GitHub org or team to a role is part of the Argo CD configuration the
+gitops repository owns.
+
+## Prior art
+
+The app-of-apps shape here is inspired by
+[kubefirst](https://github.com/konstructio/kubefirst), which provisions
+considerably more. This is not an attempt to replace it: the aim is a minimal
+base with minimal maintenance, sized to requirements kubefirst is not going to
+satisfy for us.
